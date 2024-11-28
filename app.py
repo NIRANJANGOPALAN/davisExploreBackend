@@ -27,7 +27,19 @@ from langchain_core.prompts import PromptTemplate
 
 app = Flask(__name__)
 # CORS(app, resources={r"/*": {"origins": "https://davis-connect.vercel.app/"}})
-CORS(app, resources={r"/auth/*": {"origins": "https://davis-connect.vercel.app"}})
+# CORS(app, resources={r"/auth/*": {"origins": "https://davis-connect.vercel.app"}})
+
+CORS(app, resources={
+    r"/*": {
+        "origins": "https://davis-connect.vercel.app",
+        "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+        "allow_headers": [
+            "Content-Type", 
+            "Authorization", 
+            "Access-Control-Allow-Credentials"
+        ]
+    }
+})
 
 PASSWORD = "Test01"
 
