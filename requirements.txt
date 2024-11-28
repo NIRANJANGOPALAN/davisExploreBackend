@@ -10,3 +10,4 @@ seaborn
 langchain-google-genai
 langchain
 langchain-community
+gunicorn
