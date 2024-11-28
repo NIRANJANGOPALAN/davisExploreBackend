@@ -1,0 +1,12 @@
+flask
+flask-cors
+pandas
+numpy
+werkzeug
+sqlalchemy
+pymongo
+matplotlib
+seaborn
+langchain-google-genai
+langchain
+langchain-community
