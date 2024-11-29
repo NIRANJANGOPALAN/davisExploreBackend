@@ -37,7 +37,8 @@ CORS(app, resources={
             "Content-Type", 
             "Authorization", 
             "Access-Control-Allow-Credentials"
-        ]
+        ],
+        "supports_credentials": True
     }
 })
 
