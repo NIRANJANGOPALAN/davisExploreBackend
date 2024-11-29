@@ -388,12 +388,19 @@ def generate_query():
     question = data.get('question')
     
     # Default database connection details (you may want to make these configurable)
-    db_type = "postgresql"
-    host = "localhost"
-    port = "5432"
-    username = "postgres"
-    password = "Database42"
-    database = "TestDB"
+    # db_type = "postgresql"
+    # host = "localhost"
+    # port = "5432"
+    # username = "postgres"
+    # password = "Database42"
+    # database = "TestDB"
+
+    db_type = data['dbType']
+    host = data['host']
+    port = data['port']
+    username = data['username']
+    password = data['password']
+    database = data['database']
     
     # Validate input
     if not question:
