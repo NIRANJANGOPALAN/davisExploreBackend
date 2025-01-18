@@ -5,3 +5,5 @@ __pycache__/
 *.pyd
 *.db
 uploads/
+.env
+venv/

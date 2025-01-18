@@ -23,24 +23,34 @@ from langchain.chains import create_sql_query_chain
 from langchain_community.utilities import SQLDatabase
 from langchain_core.prompts import PromptTemplate
 
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import psycopg2
+from datetime import datetime, timedelta
 
 
+load_dotenv()
 app = Flask(__name__)
 # CORS(app, resources={r"/*": {"origins": "https://davis-connect.vercel.app/"}})
 # CORS(app, resources={r"/auth/*": {"origins": "https://davis-connect.vercel.app"}})
 
-CORS(app, resources={
-    r"/*": {
-        "origins": "https://davis-connect.vercel.app",
-        "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-        "allow_headers": [
-            "Content-Type", 
-            "Authorization", 
-            "Access-Control-Allow-Credentials"
-        ],
-        "supports_credentials": True
-    }
-})
+# localOriginsw =  "origins": "http://localhost:3000"
+# production = "https://davis-connect.vercel.app"
+# CORS(app, resources={
+#     r"/*": {
+#         "origins": "http://localhost:3000",
+#         "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+#         "allow_headers": [
+#             "Content-Type", 
+#             "Authorization", 
+#             "Access-Control-Allow-Credentials"
+#         ],
+#         "supports_credentials": True
+#     }
+# })
+
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+
 
 PASSWORD = "Test01"
 
@@ -460,49 +470,54 @@ def get_column_headers():
     except Exception as e:
         app.logger.error(f"Error in get_column_headers: {str(e)}")
         return jsonify({'error': str(e)}), 500
-# # MongoDB connection
-# CLUSTER_NAME = "testCluster01"
-# CLUSTER_PWD = "Discover42"
-# uri = f""
 
-# client = MongoClient(uri)
-# db = client['user_feedback']  # database name
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-# # Ensure the collection exists
-# if 'userqueries' not in db.list_collection_names():
-#     db.create_collection('userqueries')
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL)
 
-# collection = db['userqueries']  # get reference to existing collection
-
-# @app.route('/api/submit-query', methods=['POST'])
-# def submit_query():
-#     try:
-#         data = request.json
-#         # Validate data
-#         if not all(key in data for key in ['name', 'email', 'query']):
-#             return jsonify({"error": "Missing required fields"}), 400
-
-#         # Insert data into existing MongoDB collection
-#         result = collection.insert_one(data)
-
-#         if result.inserted_id:
-#             return jsonify({"message": "Query submitted successfully"}), 200
-#         else:
-#             return jsonify({"error": "Failed to submit query"}), 500
-
-#     except Exception as e:
-#         print(f"Error: {str(e)}")
-#         return jsonify({"error": "Internal server error"}), 500
-
-# @app.route('/api/get-queries', methods=['GET'])
-# def get_queries():
-#     try:
-#         queries = list(collection.find())
-#         return dumps(queries), 200
-#     except Exception as e:
-#         print(f"Error: {str(e)}")
-#         return jsonify({"error": "Internal server error"}), 500
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    user_id = request.form.get('userId')
+    
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    if file and file.filename:
+        file_content = file.read()
+        file_size = len(file_content)
+        
+        if file_size > 10 * 1024 * 1024:  # 10MB limit
+            return jsonify({'error': 'File size exceeds 10MB limit'}), 400
+        
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            cur.execute(
+                """
+                INSERT INTO FileUploads (UserID, FileName, FileContent, ExpirationTimestamp)
+                VALUES (%s, %s, %s, %s)
+                RETURNING UploadID
+                """,
+                (user_id, file.filename, file_content, datetime.now() + timedelta(hours=24))
+            )
+            
+            upload_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return jsonify({'message': 'File uploaded successfully', 'uploadId': upload_id}), 200
+        
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    # app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    app.run(debug=True, port=5000)
